@@ -200,35 +200,41 @@ export default function GPACalculator() {
     }, [semesters, shareState]);
 
     return (
-        <div className="w-full max-w-5xl mx-auto p-4 md:p-8 font-sans pb-32">
-            <header className="mb-10 flex flex-row justify-between items-center gap-4 sticky top-2 z-50 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md py-3 -mx-4 px-4 rounded-b-3xl border-b border-slate-200/50">
-                <h1 className="text-xl md:text-2xl font-extrabold text-nus-blue-deep flex items-center gap-2 whitespace-nowrap">
+        <div className="w-full max-w-5xl mx-auto px-3 md:px-8 py-4 md:py-8 font-sans pb-24 md:pb-32">
+            <header className="mb-6 md:mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 md:top-2 z-50 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md py-4 -mx-4 px-4 md:rounded-b-3xl border-b border-slate-200/50">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-nus-blue-deep flex items-center gap-2">
                     GPA <span className="text-nus-orange">Calculator</span>
                 </h1>
-                <div className="flex items-center gap-6 bg-white dark:bg-slate-900 p-2 pr-6 rounded-full shadow-sm border border-slate-200">
-                    <div className="flex flex-col items-end pl-4">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cumulative</p>
-                        <div className="text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-nus-orange to-nus-blue leading-none">{cumulative}</div>
+
+                {/* Stats Container - responsive layout */}
+                <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    {/* GPA and MCs stats */}
+                    <div className="flex items-center gap-2 sm:gap-4 bg-white dark:bg-slate-900 p-3 sm:p-2 sm:pr-4 rounded-2xl sm:rounded-full shadow-sm border border-slate-200 overflow-x-auto">
+                        <div className="flex flex-col items-center sm:items-end pl-2 sm:pl-4 min-w-[80px]">
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cumulative</p>
+                            <div className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-linear-to-r from-nus-orange to-nus-blue leading-none">{cumulative}</div>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
+                        <div className="flex flex-col items-center sm:items-start min-w-[70px]">
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Graded MCs</p>
+                            <div className="text-lg sm:text-xl font-bold text-slate-700 dark:text-slate-200 leading-none">{gradedCredits}</div>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
+                        <div className="flex flex-col items-center sm:items-start min-w-[70px]">
+                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Total MCs</p>
+                            <div className="text-lg sm:text-xl font-bold text-slate-700 dark:text-slate-200 leading-none">{totalCredits}</div>
+                        </div>
                     </div>
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Graded MCs</p>
-                        <div className="text-xl font-bold text-slate-700 dark:text-slate-200 leading-none">{gradedCredits}</div>
-                    </div>
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total MCs</p>
-                        <div className="text-xl font-bold text-slate-700 dark:text-slate-200 leading-none">{totalCredits}</div>
-                    </div>
-                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+
+                    {/* Share button - full width on mobile */}
                     <button
                         onClick={handleShare}
                         disabled={shareState === "loading"}
                         className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-full font-bold shadow-md transition-all text-sm min-w-[100px] justify-center",
+                            "flex items-center gap-2 px-6 py-3 sm:py-2 rounded-2xl sm:rounded-full font-bold shadow-md transition-all text-sm justify-center",
                             shareState === "success"
                                 ? "bg-green-500 text-white"
-                                : "bg-nus-orange text-white hover:bg-orange-600",
+                                : "bg-nus-orange text-white hover:bg-orange-600 active:scale-95",
                             shareState === "loading" && "opacity-80 cursor-wait"
                         )}
                     >
@@ -240,47 +246,55 @@ export default function GPACalculator() {
                 </div>
             </header>
 
-            <main className="space-y-8">
+            <main className="space-y-6 md:space-y-8">
                 {semesters.map((sem, i) => (
                     <motion.div key={sem.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="relative">
-                        {i !== semesters.length - 1 && <div className="absolute left-8 top-full h-8 w-0.5 bg-slate-200 dark:bg-slate-800 -z-10" />}
-                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
-                            <div className="bg-slate-50/80 dark:bg-slate-800/50 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800">
+                        {i !== semesters.length - 1 && <div className="absolute left-8 top-full h-6 md:h-8 w-0.5 bg-slate-200 dark:bg-slate-800 -z-10" />}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
+                            <div className="bg-slate-50/80 dark:bg-slate-800/50 px-4 md:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 border-b border-slate-100 dark:border-slate-800">
                                 <div className="flex items-center gap-3 w-full sm:w-auto">
                                     <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-nus-blue text-white text-xs font-bold shadow-lg shadow-nus-blue/20">{i + 1}</span>
-                                    <input value={sem.label} onChange={(e) => updateSemesterLabel(sem.id, e.target.value)} className="text-lg font-bold text-nus-blue-deep dark:text-slate-100 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-nus-orange focus:outline-none w-full sm:w-auto transition-colors" />
+                                    <input value={sem.label} onChange={(e) => updateSemesterLabel(sem.id, e.target.value)} className="text-base md:text-lg font-bold text-nus-blue-deep dark:text-slate-100 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-nus-orange focus:outline-none w-full sm:w-auto transition-colors py-1" />
                                 </div>
-                                <div className="flex items-center gap-4 text-sm w-full sm:w-auto justify-between sm:justify-end">
-                                    <span className="text-slate-500 font-medium bg-white dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-100 dark:border-slate-700">SAP: <span className="text-nus-orange font-bold">{calculateGPA(sem.modules)}</span></span>
-                                    <button onClick={() => removeSemester(sem.id)} className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full"><Trash2 className="w-4 h-4" /></button>
+                                <div className="flex items-center gap-3 md:gap-4 text-sm w-full sm:w-auto justify-between sm:justify-end">
+                                    <span className="text-slate-500 font-medium bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-700 text-xs md:text-sm">SAP: <span className="text-nus-orange font-bold">{calculateGPA(sem.modules)}</span></span>
+                                    <button onClick={() => removeSemester(sem.id)} className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full touch-manipulation"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-12 gap-2 px-6 py-2 bg-slate-50 dark:bg-slate-900 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                                <div className="col-span-4 md:col-span-5">Module</div>
-                                <div className="col-span-2 md:col-span-2 text-center">MCs</div>
+                            {/* Column Headers */}
+                            <div className="grid grid-cols-12 gap-2 px-4 md:px-6 py-2 bg-slate-50 dark:bg-slate-900 text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                                <div className="col-span-5 md:col-span-5">Module</div>
+                                <div className="col-span-2 text-center">MCs</div>
                                 <div className="col-span-3 md:col-span-2 text-center">Grade</div>
                                 <div className="col-span-2 text-center">S/U</div>
-                                <div className="col-span-1"></div>
+                                <div className="col-span-0 md:col-span-1"></div>
                             </div>
 
-                            <div className="p-2">
+                            <div className="p-2 md:p-2">
                                 <AnimatePresence initial={false}>
                                     {sem.modules.map((m) => (
-                                        <motion.div key={m.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} className={cn("grid grid-cols-12 gap-2 items-center p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group", m.isSU && "bg-purple-50/50 dark:bg-purple-900/10")}>
-                                            <div className="col-span-4 md:col-span-5"><input type="text" value={m.name} onChange={(e) => updateModule(sem.id, m.id, "name", e.target.value)} className="w-full bg-transparent text-slate-700 dark:text-slate-200 font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-nus-blue/20 rounded px-2 py-1.5 placeholder-slate-300" placeholder="Module Code" /></div>
-                                            <div className="col-span-2 md:col-span-2 flex justify-center"><input type="number" min="0" max="20" value={m.credits} onChange={(e) => updateModule(sem.id, m.id, "credits", Number(e.target.value))} className="w-12 text-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium rounded-md py-1 focus:outline-none focus:ring-1 focus:ring-nus-blue/20" /></div>
+                                        <motion.div key={m.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} className={cn("grid grid-cols-12 gap-2 items-center p-2 md:p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group", m.isSU && "bg-purple-50/50 dark:bg-purple-900/10")}>
+                                            {/* Module Name */}
+                                            <div className="col-span-5 md:col-span-5"><input type="text" value={m.name} onChange={(e) => updateModule(sem.id, m.id, "name", e.target.value)} className="w-full bg-transparent text-slate-700 dark:text-slate-200 font-semibold text-sm md:text-sm focus:outline-none focus:ring-1 focus:ring-nus-blue/20 rounded px-2 py-2 md:py-1.5 placeholder-slate-300 touch-manipulation" placeholder="Module Code" /></div>
+
+                                            {/* Credits */}
+                                            <div className="col-span-2 flex justify-center"><input type="number" min="0" max="20" value={m.credits} onChange={(e) => updateModule(sem.id, m.id, "credits", Number(e.target.value))} className="w-12 md:w-12 text-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium rounded-md py-2 md:py-1 focus:outline-none focus:ring-1 focus:ring-nus-blue/20 touch-manipulation" /></div>
+
+                                            {/* Grade */}
                                             <div className="col-span-3 md:col-span-2 flex justify-center">
-                                                <div className={cn("relative w-full md:w-24", m.isSU && "opacity-40 pointer-events-none")}>
-                                                    <select value={m.gradeValue} onChange={(e) => updateModule(sem.id, m.id, "gradeValue", Number(e.target.value))} disabled={m.isSU} className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-md py-1 px-2 text-center text-sm focus:outline-none focus:border-nus-orange transition-colors">{GRADE_OPTIONS.map((o) => <option key={o.label} value={o.value}>{o.label}</option>)}</select>
+                                                <div className={cn("relative w-full", m.isSU && "opacity-40 pointer-events-none")}>
+                                                    <select value={m.gradeValue} onChange={(e) => updateModule(sem.id, m.id, "gradeValue", Number(e.target.value))} disabled={m.isSU} className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-md py-2 md:py-1 px-2 text-center text-sm focus:outline-none focus:border-nus-orange transition-colors touch-manipulation">{GRADE_OPTIONS.map((o) => <option key={o.label} value={o.value}>{o.label}</option>)}</select>
                                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-slate-400"><ChevronDown className="h-3 w-3" /></div>
                                                 </div>
                                             </div>
+
+                                            {/* S/U Toggle */}
                                             <div className="col-span-2 flex justify-center">
                                                 <button
                                                     onClick={() => toggleSU(sem.id, m.id)}
                                                     className={cn(
-                                                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all",
+                                                        "flex items-center justify-center gap-1 px-2 md:px-2 py-2 md:py-1 rounded-full text-xs font-bold transition-all touch-manipulation",
                                                         m.isSU
                                                             ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
                                                             : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -288,21 +302,23 @@ export default function GPACalculator() {
                                                     title={m.isSU ? "Module is S/U'd - Click to remove" : "Click to S/U this module"}
                                                 >
                                                     {m.isSU ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                                                    <span className="hidden md:inline">{m.isSU ? "S/U" : "Off"}</span>
+                                                    <span className="hidden sm:inline">{m.isSU ? "S/U" : "Off"}</span>
                                                 </button>
                                             </div>
-                                            <div className="col-span-1 flex justify-center"><button onClick={() => removeModule(sem.id, m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100" tabIndex={-1}><Trash2 className="w-3.5 h-3.5" /></button></div>
+
+                                            {/* Delete Button */}
+                                            <div className="col-span-0 md:col-span-1 flex justify-center"><button onClick={() => removeModule(sem.id, m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 touch-manipulation" tabIndex={-1}><Trash2 className="w-3.5 h-3.5" /></button></div>
                                         </motion.div>
                                     ))}
                                 </AnimatePresence>
-                                <button onClick={() => addModule(sem.id)} className="w-full mt-2 py-2 border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 text-xs font-medium uppercase tracking-wide rounded-lg hover:border-nus-blue hover:text-nus-blue hover:bg-nus-blue/5 transition-all flex items-center justify-center gap-2"><Plus className="w-3 h-3" /> Add Module</button>
+                                <button onClick={() => addModule(sem.id)} className="w-full mt-2 py-3 md:py-2 border border-dashed border-slate-200 dark:border-slate-700 text-slate-400 text-xs font-medium uppercase tracking-wide rounded-lg hover:border-nus-blue hover:text-nus-blue hover:bg-nus-blue/5 transition-all flex items-center justify-center gap-2 touch-manipulation"><Plus className="w-3 h-3" /> Add Module</button>
                             </div>
                         </div>
                     </motion.div>
                 ))}
-                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={addSemester} className="w-full py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-nus-blue font-bold flex items-center justify-center gap-3 hover:shadow-md hover:border-nus-blue/30 transition-all group"><div className="w-8 h-8 rounded-full bg-nus-blue/10 flex items-center justify-center group-hover:bg-nus-blue group-hover:text-white transition-colors"><Plus className="w-5 h-5" /></div><span>Add Next Semester</span></motion.button>
+                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={addSemester} className="w-full py-5 md:py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-nus-blue font-bold flex items-center justify-center gap-3 hover:shadow-md hover:border-nus-blue/30 transition-all group touch-manipulation"><div className="w-8 h-8 rounded-full bg-nus-blue/10 flex items-center justify-center group-hover:bg-nus-blue group-hover:text-white transition-colors"><Plus className="w-5 h-5" /></div><span>Add Next Semester</span></motion.button>
             </main>
-            <footer className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 py-3 text-center text-slate-400 text-xs z-40"><p>Built for NUS Students 🧡💙</p></footer>
+            <footer className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 py-4 md:py-3 text-center text-slate-400 text-xs z-40"><p>Built for NUS Students 🧡💙</p></footer>
         </div>
     );
 }
