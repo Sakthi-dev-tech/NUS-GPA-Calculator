@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, GraduationCap, Share2, ChevronDown, Check, Loader2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Trash2, GraduationCap, Share2, ChevronDown, Check, Loader2, ToggleLeft, ToggleRight, Image, X } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -92,6 +92,9 @@ export default function GPACalculator() {
     const [semesters, setSemesters] = useState<Semester[]>(DEFAULT_SEMESTERS);
     const [isInitialized, setIsInitialized] = useState(false);
     const [shareState, setShareState] = useState<"idle" | "loading" | "success">("idle");
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+    const [imageGenerating, setImageGenerating] = useState(false);
 
     // Initialize state from URL/localStorage on mount
     useEffect(() => {
@@ -199,6 +202,179 @@ export default function GPACalculator() {
         }
     }, [semesters, shareState]);
 
+    // Generate shareable image with GPA stats
+    const generateImage = useCallback(async () => {
+        setImageGenerating(true);
+
+        // Create canvas
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Canvas dimensions (optimized for social media - 1200x630 for Twitter/Facebook)
+        const width = 1200;
+        const height = 630;
+        canvas.width = width;
+        canvas.height = height;
+
+        // Background gradient
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, "#0f172a"); // slate-900
+        gradient.addColorStop(0.5, "#1e293b"); // slate-800
+        gradient.addColorStop(1, "#0f172a"); // slate-900
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        // Add subtle pattern overlay
+        ctx.globalAlpha = 0.03;
+        for (let i = 0; i < width; i += 40) {
+            for (let j = 0; j < height; j += 40) {
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(i, j, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.globalAlpha = 1;
+
+        // Decorative elements - orange accent circle
+        ctx.fillStyle = "#ef7d00";
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        ctx.arc(width - 100, 100, 200, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Blue accent circle
+        ctx.fillStyle = "#003d7c";
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath();
+        ctx.arc(100, height - 80, 150, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Title - measure each part to position correctly
+        ctx.font = "bold 36px Inter, system-ui, sans-serif";
+        ctx.textAlign = "left";
+
+        const nusText = "NUS ";
+        const gpaText = "GPA ";
+        const calcText = "Calculator";
+
+        let xPos = 60;
+
+        // Draw "NUS "
+        ctx.fillStyle = "#94a3b8"; // slate-400
+        ctx.fillText(nusText, xPos, 70);
+        xPos += ctx.measureText(nusText).width;
+
+        // Draw "GPA "
+        ctx.fillStyle = "#ef7d00"; // NUS orange
+        ctx.fillText(gpaText, xPos, 70);
+        xPos += ctx.measureText(gpaText).width;
+
+        // Draw "Calculator"
+        ctx.fillStyle = "#f8fafc"; // slate-50
+        ctx.fillText(calcText, xPos, 70);
+
+        // Main GPA display - large centered
+        const gpaValue = cumulative;
+
+        // GPA Label
+        ctx.font = "600 18px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#64748b"; // slate-500
+        ctx.textAlign = "center";
+        ctx.fillText("CUMULATIVE GPA", width / 2, 180);
+
+        // GPA Value - big and bold
+        ctx.font = "900 140px Inter, system-ui, sans-serif";
+        const gpaGradient = ctx.createLinearGradient(width / 2 - 150, 200, width / 2 + 150, 340);
+        gpaGradient.addColorStop(0, "#ef7d00"); // NUS orange
+        gpaGradient.addColorStop(1, "#003d7c"); // NUS blue
+        ctx.fillStyle = gpaGradient;
+        ctx.fillText(gpaValue, width / 2, 320);
+
+        // Stats row
+        const statsY = 400;
+        const statsWidth = 200;
+
+        // Graded MCs
+        ctx.font = "600 14px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#64748b";
+        ctx.fillText("GRADED MCS", width / 2 - statsWidth, statsY);
+        ctx.font = "bold 48px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillText(gradedCredits.toString(), width / 2 - statsWidth, statsY + 55);
+
+        // Total MCs
+        ctx.font = "600 14px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#64748b";
+        ctx.fillText("TOTAL MCS", width / 2 + statsWidth, statsY);
+        ctx.font = "bold 48px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillText(totalCredits.toString(), width / 2 + statsWidth, statsY + 55);
+
+        // Semesters count
+        ctx.font = "600 14px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#64748b";
+        ctx.fillText("SEMESTERS", width / 2, statsY);
+        ctx.font = "bold 48px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillText(semesters.length.toString(), width / 2, statsY + 55);
+
+        // Semester breakdown (compact)
+        if (semesters.length > 0) {
+            const semY = 510;
+            const maxSems = Math.min(semesters.length, 6);
+            const semWidth = (width - 120) / maxSems;
+
+            semesters.slice(0, maxSems).forEach((sem, i) => {
+                const x = 60 + semWidth * i + semWidth / 2;
+                const semGPA = calculateGPA(sem.modules);
+
+                // Semester label
+                ctx.font = "500 11px Inter, system-ui, sans-serif";
+                ctx.fillStyle = "#64748b";
+                ctx.textAlign = "center";
+                // Shorten label
+                const shortLabel = sem.label.replace("Year ", "Y").replace("Sem ", "S");
+                ctx.fillText(shortLabel, x, semY);
+
+                // Semester GPA
+                ctx.font = "bold 22px Inter, system-ui, sans-serif";
+                ctx.fillStyle = "#ef7d00";
+                ctx.fillText(semGPA, x, semY + 28);
+            });
+
+            if (semesters.length > 6) {
+                ctx.font = "500 12px Inter, system-ui, sans-serif";
+                ctx.fillStyle = "#64748b";
+                ctx.fillText(`+${semesters.length - 6} more`, width - 60, semY + 14);
+            }
+        }
+
+        // Footer branding
+        ctx.font = "500 14px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#475569";
+        ctx.textAlign = "center";
+        ctx.fillText("Built for NUS Students 🧡💙", width / 2, height - 30);
+
+        // Convert to data URL
+        const dataUrl = canvas.toDataURL("image/png");
+        setGeneratedImage(dataUrl);
+        setShowImageModal(true);
+        setImageGenerating(false);
+    }, [cumulative, gradedCredits, totalCredits, semesters, calculateGPA]);
+
+    // Download the generated image
+    const downloadImage = useCallback(() => {
+        if (!generatedImage) return;
+        const link = document.createElement("a");
+        link.download = `nus-gpa-${cumulative}.png`;
+        link.href = generatedImage;
+        link.click();
+    }, [generatedImage, cumulative]);
+
     return (
         <div className="w-full max-w-5xl mx-auto px-3 md:px-8 py-4 md:py-8 font-sans pb-24 md:pb-32">
             <header className="mb-6 md:mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 md:top-2 z-50 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md py-4 -mx-4 px-4 md:rounded-b-3xl border-b border-slate-200/50">
@@ -226,23 +402,39 @@ export default function GPACalculator() {
                         </div>
                     </div>
 
-                    {/* Share button - full width on mobile */}
-                    <button
-                        onClick={handleShare}
-                        disabled={shareState === "loading"}
-                        className={cn(
-                            "flex items-center gap-2 px-6 py-3 sm:py-2 rounded-2xl sm:rounded-full font-bold shadow-md transition-all text-sm justify-center",
-                            shareState === "success"
-                                ? "bg-green-500 text-white"
-                                : "bg-nus-orange text-white hover:bg-orange-600 active:scale-95",
-                            shareState === "loading" && "opacity-80 cursor-wait"
-                        )}
-                    >
-                        {shareState === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {shareState === "success" && <Check className="w-4 h-4" />}
-                        {shareState === "idle" && <Share2 className="w-4 h-4" />}
-                        {shareState === "success" ? "Copied!" : "Share"}
-                    </button>
+                    {/* Share and Generate Image buttons */}
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={handleShare}
+                            disabled={shareState === "loading"}
+                            className={cn(
+                                "flex-1 sm:flex-none flex items-center gap-2 px-4 py-3 sm:py-2 rounded-2xl sm:rounded-full font-bold shadow-md transition-all text-sm justify-center",
+                                shareState === "success"
+                                    ? "bg-green-500 text-white"
+                                    : "bg-nus-orange text-white hover:bg-orange-600 active:scale-95",
+                                shareState === "loading" && "opacity-80 cursor-wait"
+                            )}
+                        >
+                            {shareState === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {shareState === "success" && <Check className="w-4 h-4" />}
+                            {shareState === "idle" && <Share2 className="w-4 h-4" />}
+                            {shareState === "success" ? "Copied!" : "Share"}
+                        </button>
+
+                        <button
+                            onClick={generateImage}
+                            disabled={imageGenerating}
+                            className={cn(
+                                "flex-1 sm:flex-none flex items-center gap-2 px-4 py-3 sm:py-2 rounded-2xl sm:rounded-full font-bold shadow-md transition-all text-sm justify-center",
+                                "bg-nus-blue text-white hover:bg-blue-700 active:scale-95",
+                                imageGenerating && "opacity-80 cursor-wait"
+                            )}
+                            title="Generate shareable image"
+                        >
+                            {imageGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
+                            <span className="hidden sm:inline">Image</span>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -319,6 +511,88 @@ export default function GPACalculator() {
                 <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={addSemester} className="w-full py-5 md:py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-nus-blue font-bold flex items-center justify-center gap-3 hover:shadow-md hover:border-nus-blue/30 transition-all group touch-manipulation"><div className="w-8 h-8 rounded-full bg-nus-blue/10 flex items-center justify-center group-hover:bg-nus-blue group-hover:text-white transition-colors"><Plus className="w-5 h-5" /></div><span>Add Next Semester</span></motion.button>
             </main>
             <footer className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 py-4 md:py-3 text-center text-slate-400 text-xs z-40"><p>Built for NUS Students 🧡💙</p></footer>
+
+            {/* Image Preview Modal */}
+            <AnimatePresence>
+                {showImageModal && generatedImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                        onClick={() => setShowImageModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-slate-900 rounded-2xl p-4 max-w-3xl w-full shadow-2xl border border-slate-700"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-white font-bold text-lg">Share Your GPA</h3>
+                                <button
+                                    onClick={() => setShowImageModal(false)}
+                                    className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-800 rounded-full"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Image Preview */}
+                            <div className="relative rounded-xl overflow-hidden mb-4 bg-slate-800">
+                                <img
+                                    src={generatedImage}
+                                    alt="GPA Stats"
+                                    className="w-full h-auto"
+                                />
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={downloadImage}
+                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-nus-orange text-white font-bold rounded-xl hover:bg-orange-600 transition-all active:scale-95"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Download Image
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (generatedImage) {
+                                            try {
+                                                // Convert data URL to blob
+                                                const response = await fetch(generatedImage);
+                                                const blob = await response.blob();
+                                                // Copy image blob to clipboard
+                                                await navigator.clipboard.write([
+                                                    new ClipboardItem({ [blob.type]: blob })
+                                                ]);
+                                            } catch (err) {
+                                                console.error("Failed to copy image:", err);
+                                            }
+                                        }
+                                    }}
+                                    className="px-6 py-3 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-all active:scale-95"
+                                    title="Copy image to clipboard"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Tip */}
+                            <p className="text-slate-500 text-xs text-center mt-4">
+                                💡 Save this image and share it on Instagram, Twitter, or LinkedIn!
+                            </p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
