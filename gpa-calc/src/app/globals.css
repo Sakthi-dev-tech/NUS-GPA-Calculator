@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  
+  /* NUS Colors */
+  --nus-orange: #EF7C00;
+  --nus-blue: #003D7C;
+  --nus-blue-deep: #002855;
+  
+  /* Accents */
+  --accent-orange-soft: #fff7ed;
+  --accent-blue-soft: #f0f9ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-nus-orange: var(--nus-orange);
+  --color-nus-blue: var(--nus-blue);
+  --color-nus-blue-deep: var(--nus-blue-deep);
+  
+  --font-sans: 'Outfit', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --foreground: #f8fafc;
+    --accent-orange-soft: #2a1b0d;
+    --accent-blue-soft: #0f1f2e;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
