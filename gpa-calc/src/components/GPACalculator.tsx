@@ -206,10 +206,34 @@ export default function GPACalculator() {
     const generateImage = useCallback(async () => {
         setImageGenerating(true);
 
+        // First, generate the shortened URL
+        let shortUrl = "tinyurl.com/NUSGPACalculator";
+        try {
+            const encoded = encodeData(semesters);
+            const baseUrl = window.location.origin + window.location.pathname;
+            const fullUrl = `${baseUrl}?data=${encoded}`;
+
+            // Shorten URL using is.gd API
+            const apiUrl = `https://is.gd/create.php?format=json&url=${encodeURIComponent(fullUrl)}`;
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            if (data.shorturl) {
+                // Extract just the domain and path (remove https://)
+                shortUrl = data.shorturl.replace("https://", "").replace("http://", "");
+            }
+        } catch (error) {
+            console.error("Failed to generate short URL:", error);
+            // Use default URL if shortening fails
+        }
+
         // Create canvas
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+        if (!ctx) {
+            setImageGenerating(false);
+            return;
+        }
 
         // Canvas dimensions (optimized for social media - 1200x630 for Twitter/Facebook)
         const width = 1200;
@@ -353,11 +377,16 @@ export default function GPACalculator() {
             }
         }
 
-        // Footer branding
-        ctx.font = "500 14px Inter, system-ui, sans-serif";
+        // Footer with URL and branding
+        ctx.font = "bold 16px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#ef7d00"; // NUS orange for URL
+        ctx.textAlign = "center";
+        ctx.fillText(shortUrl, width / 2, height - 45);
+
+        ctx.font = "500 13px Inter, system-ui, sans-serif";
         ctx.fillStyle = "#475569";
         ctx.textAlign = "center";
-        ctx.fillText("Built for NUS Students 🧡💙", width / 2, height - 30);
+        ctx.fillText("Built for NUS Students 🧡💙", width / 2, height - 20);
 
         // Convert to data URL
         const dataUrl = canvas.toDataURL("image/png");
