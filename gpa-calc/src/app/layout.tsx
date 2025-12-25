@@ -7,9 +7,6 @@ const outfit = Outfit({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "GPA Calculator",
   description: "Calculate your NUS GPA in style.",
-  icons: {
-    icon: "/icon.png",
-  },
   viewport: {
     width: "device-width",
     initialScale: 1,
