@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, GraduationCap, Share2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, GraduationCap, Share2, ChevronDown, Check, Loader2 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -23,20 +23,87 @@ const GRADE_OPTIONS: GradeOption[] = [
 interface Module { id: string; name: string; credits: number; gradeValue: number; }
 interface Semester { id: string; label: string; modules: Module[]; }
 
+const STORAGE_KEY = "nus-gpa-data";
+const DEFAULT_SEMESTERS: Semester[] = [
+    {
+        id: "sem-1", label: "Year 1 Sem 1",
+        modules: [
+            { id: "1", name: "CS1010", credits: 4, gradeValue: 5.0 },
+            { id: "2", name: "MA1521", credits: 4, gradeValue: 4.5 },
+        ],
+    },
+    {
+        id: "sem-2", label: "Year 1 Sem 2",
+        modules: [{ id: "3", name: "CS2030", credits: 4, gradeValue: 4.0 }],
+    },
+];
+
+// Utility to encode data for URL
+const encodeData = (data: Semester[]): string => {
+    try {
+        const json = JSON.stringify(data);
+        return btoa(encodeURIComponent(json));
+    } catch {
+        return "";
+    }
+};
+
+// Utility to decode data from URL
+const decodeData = (encoded: string): Semester[] | null => {
+    try {
+        const json = decodeURIComponent(atob(encoded));
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+};
+
+// Get initial state: URL param > localStorage > defaults
+const getInitialState = (): Semester[] => {
+    if (typeof window === "undefined") return DEFAULT_SEMESTERS;
+
+    // Check URL params first (for sharing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataParam = urlParams.get("data");
+    if (dataParam) {
+        const decoded = decodeData(dataParam);
+        if (decoded) {
+            // Clear the URL param after loading
+            window.history.replaceState({}, "", window.location.pathname);
+            return decoded;
+        }
+    }
+
+    // Check localStorage
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+        try {
+            return JSON.parse(stored);
+        } catch {
+            // Invalid data, use defaults
+        }
+    }
+
+    return DEFAULT_SEMESTERS;
+};
+
 export default function GPACalculator() {
-    const [semesters, setSemesters] = useState<Semester[]>([
-        {
-            id: "sem-1", label: "Year 1 Sem 1",
-            modules: [
-                { id: "1", name: "CS1010", credits: 4, gradeValue: 5.0 },
-                { id: "2", name: "MA1521", credits: 4, gradeValue: 4.5 },
-            ],
-        },
-        {
-            id: "sem-2", label: "Year 1 Sem 2",
-            modules: [{ id: "3", name: "CS2030", credits: 4, gradeValue: 4.0 }],
-        },
-    ]);
+    const [semesters, setSemesters] = useState<Semester[]>(DEFAULT_SEMESTERS);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [shareState, setShareState] = useState<"idle" | "loading" | "success">("idle");
+
+    // Initialize state from URL/localStorage on mount
+    useEffect(() => {
+        setSemesters(getInitialState());
+        setIsInitialized(true);
+    }, []);
+
+    // Save to localStorage on change (after initialization)
+    useEffect(() => {
+        if (isInitialized) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(semesters));
+        }
+    }, [semesters, isInitialized]);
 
     const addSemester = () => {
         let nextYear = 1, nextSem = 1;
@@ -75,11 +142,50 @@ export default function GPACalculator() {
     const cumulative = useMemo(() => calculateGPA(semesters.flatMap(s => s.modules)), [semesters]);
     const totalCredits = useMemo(() => semesters.flatMap(s => s.modules).reduce((a, m) => a + m.credits, 0), [semesters]);
 
+    // Handle share button click
+    const handleShare = useCallback(async () => {
+        if (shareState === "loading") return;
+
+        setShareState("loading");
+        try {
+            // Encode the data
+            const encoded = encodeData(semesters);
+            const baseUrl = window.location.origin + window.location.pathname;
+            const fullUrl = `${baseUrl}?data=${encoded}`;
+
+            // Shorten URL using is.gd API
+            const apiUrl = `https://is.gd/create.php?format=json&url=${encodeURIComponent(fullUrl)}`;
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            let urlToCopy = fullUrl;
+            if (data.shorturl) {
+                urlToCopy = data.shorturl;
+            }
+
+            // Copy to clipboard
+            await navigator.clipboard.writeText(urlToCopy);
+            setShareState("success");
+
+            // Reset after 2 seconds
+            setTimeout(() => setShareState("idle"), 2000);
+        } catch (error) {
+            console.error("Failed to share:", error);
+            // Fallback: copy the long URL
+            const encoded = encodeData(semesters);
+            const baseUrl = window.location.origin + window.location.pathname;
+            const fullUrl = `${baseUrl}?data=${encoded}`;
+            await navigator.clipboard.writeText(fullUrl);
+            setShareState("success");
+            setTimeout(() => setShareState("idle"), 2000);
+        }
+    }, [semesters, shareState]);
+
     return (
         <div className="w-full max-w-5xl mx-auto p-4 md:p-8 font-sans pb-32">
-            <header className="mb-10 flex flex-col md:flex-row justify-between items-end gap-6 sticky top-2 z-50 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md py-4 -mx-4 px-4 rounded-b-3xl border-b border-slate-200/50">
-                <h1 className="text-3xl md:text-4xl font-extrabold text-nus-blue-deep flex items-center gap-3">
-                    <GraduationCap className="w-8 h-8 text-nus-orange" /> NUS GPA <span className="text-nus-orange">Calc</span>
+            <header className="mb-10 flex flex-row justify-between items-center gap-4 sticky top-2 z-50 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md py-3 -mx-4 px-4 rounded-b-3xl border-b border-slate-200/50">
+                <h1 className="text-xl md:text-2xl font-extrabold text-nus-blue-deep flex items-center gap-2 whitespace-nowrap">
+                    GPA <span className="text-nus-orange">Calculator</span>
                 </h1>
                 <div className="flex items-center gap-6 bg-white dark:bg-slate-900 p-2 pr-6 rounded-full shadow-sm border border-slate-200">
                     <div className="flex flex-col items-end pl-4">
@@ -93,11 +199,20 @@ export default function GPACalculator() {
                     </div>
                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
                     <button
-                        onClick={() => alert("Link copied to clipboard!")}
-                        className="flex items-center gap-2 bg-nus-orange text-white px-4 py-2 rounded-full font-bold shadow-md hover:bg-orange-600 transition-colors text-sm"
+                        onClick={handleShare}
+                        disabled={shareState === "loading"}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-full font-bold shadow-md transition-all text-sm min-w-[100px] justify-center",
+                            shareState === "success"
+                                ? "bg-green-500 text-white"
+                                : "bg-nus-orange text-white hover:bg-orange-600",
+                            shareState === "loading" && "opacity-80 cursor-wait"
+                        )}
                     >
-                        <Share2 className="w-4 h-4" />
-                        Share
+                        {shareState === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {shareState === "success" && <Check className="w-4 h-4" />}
+                        {shareState === "idle" && <Share2 className="w-4 h-4" />}
+                        {shareState === "success" ? "Copied!" : "Share"}
                     </button>
                 </div>
             </header>
