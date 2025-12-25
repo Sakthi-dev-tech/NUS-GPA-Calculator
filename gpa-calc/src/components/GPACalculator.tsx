@@ -447,7 +447,7 @@ export default function GPACalculator() {
                             {shareState === "loading" && <Loader2 className="w-4 h-4 animate-spin" />}
                             {shareState === "success" && <Check className="w-4 h-4" />}
                             {shareState === "idle" && <Share2 className="w-4 h-4" />}
-                            {shareState === "success" ? "Copied!" : "Share"}
+                            {shareState === "success" ? "Copied!" : "Export Link"}
                         </button>
 
                         <button
@@ -461,7 +461,7 @@ export default function GPACalculator() {
                             title="Generate shareable image"
                         >
                             {imageGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
-                            <span className="hidden sm:inline">Image</span>
+                            <span>Generate Image</span>
                         </button>
                     </div>
                 </div>
@@ -548,7 +548,7 @@ export default function GPACalculator() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex items-center justify-center p-4"
                         onClick={() => setShowImageModal(false)}
                     >
                         <motion.div
