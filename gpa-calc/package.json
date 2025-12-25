@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node scripts/create-nojekyll.js",
     "start": "next start",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d out --dotfiles",
     "lint": "eslint"
   },
   "dependencies": {
@@ -24,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "gh-pages": "^6.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

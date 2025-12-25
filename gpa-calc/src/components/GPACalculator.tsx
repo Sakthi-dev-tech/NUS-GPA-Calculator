@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, GraduationCap, Share2, ChevronDown, Check, Loader2 } from "lucide-react";
+import { Plus, Trash2, GraduationCap, Share2, ChevronDown, Check, Loader2, ToggleLeft, ToggleRight } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -12,15 +12,16 @@ function cn(...inputs: ClassValue[]) {
 
 type GradeOption = { label: string; value: number; };
 
+// Grade options for regular graded modules (S/U is handled separately as a toggle)
 const GRADE_OPTIONS: GradeOption[] = [
     { label: "A+", value: 5.0 }, { label: "A", value: 5.0 }, { label: "A-", value: 4.5 },
     { label: "B+", value: 4.0 }, { label: "B", value: 3.5 }, { label: "B-", value: 3.0 },
     { label: "C+", value: 2.5 }, { label: "C", value: 2.0 }, { label: "D+", value: 1.5 },
     { label: "D", value: 1.0 }, { label: "F", value: 0.0 },
-    { label: "S", value: -1 }, { label: "U", value: -1 },
 ];
 
-interface Module { id: string; name: string; credits: number; gradeValue: number; }
+// Module now includes isSU flag to track S/U status
+interface Module { id: string; name: string; credits: number; gradeValue: number; isSU?: boolean; }
 interface Semester { id: string; label: string; modules: Module[]; }
 
 const STORAGE_KEY = "nus-gpa-data";
@@ -121,26 +122,43 @@ export default function GPACalculator() {
     const removeSemester = (id: string) => setSemesters(semesters.filter(s => s.id !== id));
 
     const addModule = (semId: string) => {
-        setSemesters(semesters.map(s => s.id === semId ? { ...s, modules: [...s.modules, { id: Math.random().toString(36).substr(2, 9), name: "", credits: 4, gradeValue: 5.0 }] } : s));
+        setSemesters(semesters.map(s => s.id === semId ? { ...s, modules: [...s.modules, { id: Math.random().toString(36).substr(2, 9), name: "", credits: 4, gradeValue: 5.0, isSU: false }] } : s));
     };
 
     const removeModule = (semId: string, modId: string) => {
         setSemesters(semesters.map(s => s.id === semId ? { ...s, modules: s.modules.filter(m => m.id !== modId) } : s));
     };
 
-    const updateModule = (semId: string, modId: string, field: keyof Module, value: string | number) => {
+    const updateModule = (semId: string, modId: string, field: keyof Module, value: string | number | boolean) => {
         setSemesters(semesters.map(s => s.id === semId ? { ...s, modules: s.modules.map(m => m.id === modId ? { ...m, [field]: value } : m) } : s));
     };
 
+    // Toggle S/U status for a module
+    const toggleSU = (semId: string, modId: string) => {
+        setSemesters(semesters.map(s => s.id === semId ? {
+            ...s,
+            modules: s.modules.map(m => m.id === modId ? { ...m, isSU: !m.isSU } : m)
+        } : s));
+    };
+
+    // Calculate GPA (CAP) - excludes S/U modules from calculation
+    // Per NUS rules: S/U modules' grade points AND MCs are excluded from CAP calculation
     const calculateGPA = (mods: Module[]) => {
-        const graded = mods.filter(m => m.gradeValue >= 0);
+        // Filter out S/U modules - they don't count toward GPA
+        const graded = mods.filter(m => !m.isSU && m.gradeValue >= 0);
         const points = graded.reduce((a, m) => a + m.gradeValue * m.credits, 0);
         const credits = graded.reduce((a, m) => a + m.credits, 0);
         return credits === 0 ? "0.00" : (points / credits).toFixed(2);
     };
 
     const cumulative = useMemo(() => calculateGPA(semesters.flatMap(s => s.modules)), [semesters]);
+
+    // Total credits counts ALL modules (including S/U) - these MCs still count toward graduation requirements
+    // Per NUS rules: 'S' grade modules contribute to graduation MCs (only 'U' grade doesn't, but we count all for total taken)
     const totalCredits = useMemo(() => semesters.flatMap(s => s.modules).reduce((a, m) => a + m.credits, 0), [semesters]);
+
+    // Graded credits (for display) - excludes S/U modules
+    const gradedCredits = useMemo(() => semesters.flatMap(s => s.modules).filter(m => !m.isSU).reduce((a, m) => a + m.credits, 0), [semesters]);
 
     // Handle share button click
     const handleShare = useCallback(async () => {
@@ -194,7 +212,12 @@ export default function GPACalculator() {
                     </div>
                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Credits</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Graded MCs</p>
+                        <div className="text-xl font-bold text-slate-700 dark:text-slate-200 leading-none">{gradedCredits}</div>
+                    </div>
+                    <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total MCs</p>
                         <div className="text-xl font-bold text-slate-700 dark:text-slate-200 leading-none">{totalCredits}</div>
                     </div>
                     <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
@@ -234,19 +257,40 @@ export default function GPACalculator() {
                             </div>
 
                             <div className="grid grid-cols-12 gap-2 px-6 py-2 bg-slate-50 dark:bg-slate-900 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                                <div className="col-span-5 md:col-span-6">Module</div>
-                                <div className="col-span-3 md:col-span-2 text-center">MCs</div>
-                                <div className="col-span-3 text-center">Grade</div>
+                                <div className="col-span-4 md:col-span-5">Module</div>
+                                <div className="col-span-2 md:col-span-2 text-center">MCs</div>
+                                <div className="col-span-3 md:col-span-2 text-center">Grade</div>
+                                <div className="col-span-2 text-center">S/U</div>
                                 <div className="col-span-1"></div>
                             </div>
 
                             <div className="p-2">
                                 <AnimatePresence initial={false}>
                                     {sem.modules.map((m) => (
-                                        <motion.div key={m.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                            <div className="col-span-5 md:col-span-6"><input type="text" value={m.name} onChange={(e) => updateModule(sem.id, m.id, "name", e.target.value)} className="w-full bg-transparent text-slate-700 dark:text-slate-200 font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-nus-blue/20 rounded px-2 py-1.5 placeholder-slate-300" placeholder="Module Code" /></div>
-                                            <div className="col-span-3 md:col-span-2 flex justify-center"><input type="number" min="0" max="20" value={m.credits} onChange={(e) => updateModule(sem.id, m.id, "credits", Number(e.target.value))} className="w-12 text-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium rounded-md py-1 focus:outline-none focus:ring-1 focus:ring-nus-blue/20" /></div>
-                                            <div className="col-span-3 flex justify-center"><div className="relative w-full md:w-24"><select value={m.gradeValue} onChange={(e) => updateModule(sem.id, m.id, "gradeValue", Number(e.target.value))} className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-md py-1 px-2 text-center text-sm focus:outline-none focus:border-nus-orange transition-colors">{GRADE_OPTIONS.map((o) => <option key={o.label} value={o.value}>{o.label}</option>)}</select><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-slate-400"><ChevronDown className="h-3 w-3" /></div></div></div>
+                                        <motion.div key={m.id} layout initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0, overflow: 'hidden' }} className={cn("grid grid-cols-12 gap-2 items-center p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group", m.isSU && "bg-purple-50/50 dark:bg-purple-900/10")}>
+                                            <div className="col-span-4 md:col-span-5"><input type="text" value={m.name} onChange={(e) => updateModule(sem.id, m.id, "name", e.target.value)} className="w-full bg-transparent text-slate-700 dark:text-slate-200 font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-nus-blue/20 rounded px-2 py-1.5 placeholder-slate-300" placeholder="Module Code" /></div>
+                                            <div className="col-span-2 md:col-span-2 flex justify-center"><input type="number" min="0" max="20" value={m.credits} onChange={(e) => updateModule(sem.id, m.id, "credits", Number(e.target.value))} className="w-12 text-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium rounded-md py-1 focus:outline-none focus:ring-1 focus:ring-nus-blue/20" /></div>
+                                            <div className="col-span-3 md:col-span-2 flex justify-center">
+                                                <div className={cn("relative w-full md:w-24", m.isSU && "opacity-40 pointer-events-none")}>
+                                                    <select value={m.gradeValue} onChange={(e) => updateModule(sem.id, m.id, "gradeValue", Number(e.target.value))} disabled={m.isSU} className="w-full appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-md py-1 px-2 text-center text-sm focus:outline-none focus:border-nus-orange transition-colors">{GRADE_OPTIONS.map((o) => <option key={o.label} value={o.value}>{o.label}</option>)}</select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1 text-slate-400"><ChevronDown className="h-3 w-3" /></div>
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2 flex justify-center">
+                                                <button
+                                                    onClick={() => toggleSU(sem.id, m.id)}
+                                                    className={cn(
+                                                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold transition-all",
+                                                        m.isSU
+                                                            ? "bg-purple-500 text-white shadow-md shadow-purple-500/20"
+                                                            : "bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                                    )}
+                                                    title={m.isSU ? "Module is S/U'd - Click to remove" : "Click to S/U this module"}
+                                                >
+                                                    {m.isSU ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                                                    <span className="hidden md:inline">{m.isSU ? "S/U" : "Off"}</span>
+                                                </button>
+                                            </div>
                                             <div className="col-span-1 flex justify-center"><button onClick={() => removeModule(sem.id, m.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100" tabIndex={-1}><Trash2 className="w-3.5 h-3.5" /></button></div>
                                         </motion.div>
                                     ))}

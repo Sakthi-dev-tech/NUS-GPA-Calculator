@@ -5,8 +5,11 @@ import "./globals.css";
 const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NUS GPA Calculator",
+  title: "GPA Calculator",
   description: "Calculate your NUS GPA in style.",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
