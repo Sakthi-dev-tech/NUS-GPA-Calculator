@@ -1,7 +1,12 @@
 self.__BUILD_MANIFEST = {
   "__rewrites": {
     "afterFiles": [],
-    "beforeFiles": [],
+    "beforeFiles": [
+      {
+        "source": "/NUS-GPA-Calculator//_next/:path+",
+        "destination": "/NUS-GPA-Calculator/_next/:path+"
+      }
+    ],
     "fallback": []
   },
   "sortedPages": [
