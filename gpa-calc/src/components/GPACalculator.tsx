@@ -206,26 +206,8 @@ export default function GPACalculator() {
     const generateImage = useCallback(async () => {
         setImageGenerating(true);
 
-        // First, generate the shortened URL
-        let shortUrl = "tinyurl.com/NUSGPACalculator";
-        try {
-            const encoded = encodeData(semesters);
-            const baseUrl = window.location.origin + window.location.pathname;
-            const fullUrl = `${baseUrl}?data=${encoded}`;
-
-            // Shorten URL using is.gd API
-            const apiUrl = `https://is.gd/create.php?format=json&url=${encodeURIComponent(fullUrl)}`;
-            const response = await fetch(apiUrl);
-            const data = await response.json();
-
-            if (data.shorturl) {
-                // Extract just the domain and path (remove https://)
-                shortUrl = data.shorturl.replace("https://", "").replace("http://", "");
-            }
-        } catch (error) {
-            console.error("Failed to generate short URL:", error);
-            // Use default URL if shortening fails
-        }
+        // Use the fixed tinyurl link for the image
+        const shortUrl = "tinyurl.com/NUSGPACalculator";
 
         // Create canvas
         const canvas = document.createElement("canvas");
